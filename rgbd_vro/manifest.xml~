@@ -1,0 +1,24 @@
+<package>
+  <description brief="rgbd_vro">
+
+     rgbd_vro
+
+  </description>
+  <author>soonhac</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/rgbd_vro</url>
+  <depend package="actionlib"/>
+  <depend package="roscpp"/>
+  <depend package="rospy"/>
+  <depend package="roslib"/>
+  <depend package="std_msgs"/>
+  <depend package="actionlib_msgs"/>
+  <depend package="swiss_ranger"/>
+  <depend package="pcl"/>
+  <depend package="opencv2"/>
+  <rosdep name="eigen"/> 
+
+</package>
+
+

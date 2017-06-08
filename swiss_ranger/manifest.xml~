@@ -1,0 +1,20 @@
+<package>
+  <description brief="swiss_ranger">
+
+     swiss_ranger
+
+  </description>
+  <author>viki</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/swiss_ranger</url>
+  <depend package="actionlib"/>
+  <depend package="roscpp"/>
+  <depend package="rospy"/>
+  <depend package="roslib"/>
+  <depend package="std_msgs"/>
+  <depend package="actionlib_msgs"/>
+
+</package>
+
+

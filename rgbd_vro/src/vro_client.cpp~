@@ -1,0 +1,214 @@
+/**
+ * Visual Range Odometry Client
+ *
+ * Created on : 10/30/2012
+ * Author : Soonhac Hong (sxhong1@ualr.edu)
+ */
+
+#include <ros/ros.h>
+#include <actionlib/client/simple_action_client.h>
+#include <actionlib/client/terminal_state.h>
+#include <rgbd_vro/vroAction.h>
+
+/**
+   * @brief Write VRO results into a file.
+   * @param
+   * @return
+  */
+void write_result(rgbd_vro::vroGoal goal, rgbd_vro::vroResultConstPtr vro_result, unsigned int data_size)
+{
+  char result_file_name[1024];
+  std::string sequence_dir_name[6]={"3th_straight","3th_swing","4th_straight","4th_swing","5th_straight","5th_swing"};
+
+  if(goal.vro_mode.compare("Batch") == 0)
+    {
+      sprintf(result_file_name, "/home/viki/soonhac/vro_result/%s/%d_degree/vro_cpp_%d_%s_%s.dat",goal.data_name.c_str(), goal.data_interval*3, data_size, goal.vf_detector_name.c_str(), goal.vf_descriptor_name.c_str());
+    }
+  else  // Sequence mode
+    {
+      if(goal.camera_name.compare("sr4k") == 0)
+	{
+	  sprintf(result_file_name, "/home/viki/soonhac/vro_result/%s/%s/vro_cpp_%d_%s_%s.dat",goal.data_name.c_str(), sequence_dir_name[goal.data_index-1].c_str(), data_size, goal.vf_detector_name.c_str(), goal.vf_descriptor_name.c_str());
+	}
+      else
+	{
+	  sprintf(result_file_name, "/home/viki/soonhac/vro_result/%s/vro_cpp_%d_%s_%s.dat",goal.data_name.c_str(), data_size, goal.vf_detector_name.c_str(), goal.vf_descriptor_name.c_str());
+	}
+    }
+
+  //Write results into the file
+  FILE* result_file;
+
+  result_file=fopen(result_file_name,"a+");
+
+  if(result_file != NULL)
+    {
+      if(goal.vro_mode.compare("Sequence") == 0)
+	{
+	  if(goal.camera_name.compare("sr4k") == 0)
+	    {
+	      fprintf(result_file,"%d %d  ",goal.first_file_index, goal.second_file_index);
+	    }
+	  else
+	    {
+	      fprintf(result_file,"%f ",vro_result->color_file_name_number);
+	    }
+	}
+      for(int i = 0 ; i < 3; i++)
+	{
+	  fprintf(result_file,"%12.8f ",vro_result->translation[i]);
+	}
+      for(int i = 0 ; i < 3; i++)
+	{
+	  fprintf(result_file,"%12.8f ",vro_result->orientation[i]);
+	}
+      for(int i = 0 ; i < 8; i++)
+	{
+	  fprintf(result_file,"%12.8f ",vro_result->comp_time[i]);
+	}
+      for(int i = 0 ; i < 2; i++)
+	{
+	  fprintf(result_file,"%d ",vro_result->match_num[i]);
+	}
+      fprintf(result_file,"%d\n",vro_result->error);
+	  
+      fclose(result_file);
+    }
+  else
+    {
+      std::cout << "Error : " << result_file_name << " can't be open !!" << std::endl;
+    }
+}
+
+/**
+   * @brief Run VRO repeatedly
+   * @param
+   * @return
+  */
+void run_vro(actionlib::SimpleActionClient<rgbd_vro::vroAction> &ac, std::string vro_mode, std::string data_name, unsigned int data_index, unsigned int data_interval, unsigned int data_size, unsigned int start_file_index)
+{
+  
+  // send a goal to the action
+  rgbd_vro::vroGoal goal;
+  goal.camera_name = "sr4k"; //"kinect"; // "sr4k"
+  goal.vro_mode = vro_mode;
+  goal.data_name = data_name;
+  goal.data_index = data_index;
+  goal.data_interval = data_interval;
+  //goal.file_index = 1;
+  goal.vf_detector_name = "SIFT";
+  goal.vf_descriptor_name = "SIFT";
+
+  
+  for(unsigned int i = 0 ; i < data_size; i++)
+    {
+      if(vro_mode.compare("Batch") == 0)
+	{
+	  goal.second_file_index = i + 1;
+	  goal.first_file_index = goal.second_file_index;
+	}
+      else // Sequence Mode
+	{
+	  goal.second_file_index = i + start_file_index + 1;
+	  if(goal.second_file_index  == 1)
+	    {
+	      goal.second_file_index ++;
+	    }
+	  
+	  goal.first_file_index = goal.second_file_index - 1; 
+	}
+	 
+      ac.sendGoal(goal);
+
+      //wait for the action to return
+      bool finished_before_timeout = ac.waitForResult(ros::Duration(30.0));
+
+      if (finished_before_timeout)
+	{
+	  rgbd_vro::vroResultConstPtr vro_result = ac.getResult();
+      
+	  write_result(goal, vro_result, data_size);
+
+	  actionlib::SimpleClientGoalState state = ac.getState();
+	  ROS_INFO("Action finished: %s, %d",state.toString().c_str(), goal.second_file_index);
+	}
+      else
+	{
+	  ROS_INFO("Action did not finish before the time out.");
+	}
+    }
+}
+
+/**
+   * @brief Run VRO with batch data
+   * @param
+   * @return
+  */
+void run_batch_vro(actionlib::SimpleActionClient<rgbd_vro::vroAction> &ac)
+{
+
+  std::string vro_mode("Batch");  // Option : Batch(for statstical analysis), Sequence
+  std::string data_name("pitch");  // "pitch"
+  unsigned int data_index = 1;  // data index of start data set in Batch mode
+  unsigned int data_interval = 1;  // data interval from start data set in Batch mode
+  unsigned int data_size = 10; //270;  // data size for Batch mode
+  unsigned int start_file_index = 0;  // start file index of sequence
+  unsigned int data_interval_max = 1;
+  unsigned int data_interval_start = 1;
+
+  //Run batch vro
+  for(data_interval = data_interval_start ; data_interval <= data_interval_max; data_interval++)
+    {
+      std::cout << " ------  Data interval : " << data_interval * 3 << " degree  ---------" << std::endl; 
+      run_vro(ac, vro_mode, data_name, data_index, data_interval, data_size, start_file_index);
+    }
+}
+
+/**
+   * @brief Run VRO with sequential data
+   * @param
+   * @return
+  */
+void run_sequence_vro(actionlib::SimpleActionClient<rgbd_vro::vroAction> &ac)
+{
+
+  std::string vro_mode("Sequence");  // Option : Batch(for statstical analysis), Sequence
+  std::string data_name("freiburg1_floor");  //"etas"
+  unsigned int data_index = 1;  // data index of start data set in Batch mode
+  unsigned int data_interval = 0;  // data interval from start data set in Batch mode
+  unsigned int data_size = 1240; //270;  // data size for Batch mode
+  unsigned int start_file_index = 1;
+
+  //Run sequence vro
+  run_vro(ac, vro_mode, data_name, data_index, data_interval, data_size, start_file_index);
+}
+
+/**
+   * @brief Call VRO server
+   * @param
+   * @return
+  */
+int main (int argc, char **argv)
+{
+ 
+  ros::init(argc, argv, "test_vro");
+
+  // create the action client
+  // true causes the client to spin its own thread
+  actionlib::SimpleActionClient<rgbd_vro::vroAction> ac("rgbd_vro", true);
+  
+
+  ROS_INFO("Waiting for action server to start.");
+  // wait for the action server to start
+  ac.waitForServer(); //will wait for infinite time
+  ROS_INFO("Action server started, sending data name.");
+
+  run_batch_vro(ac);
+
+  //run_sequence_vro(ac);
+
+  
+
+  //exit
+  return 0;
+}

@@ -1,0 +1,14 @@
+#goal definition
+string data_name
+int32 dir_index
+int32 file_index
+---
+#result definition
+uint16[] image
+float32[] x
+float32[] y
+float32[] z
+uint8[] c
+---
+#feedback
+int32[] sequence

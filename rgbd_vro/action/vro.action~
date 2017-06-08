@@ -1,0 +1,22 @@
+#goal definition
+string vro_mode
+string camera_name
+string data_name
+int32 data_index
+int32 data_interval
+int32 first_file_index
+int32 second_file_index
+string vf_detector_name
+string vf_descriptor_name
+---
+#result definition
+float32[] translation   # [3] : x, y, z 
+float32[] orientation  # [3] : rx, ry, rz
+float32[] comp_time  # [8] : load1, detection1, description1, load2, detection2, description2, match, ransac
+int32[] match_num # [2] : match_num, ransac_num
+int32 error
+float64 color_file_name_number
+---
+#feedback
+
+int32[] sequence

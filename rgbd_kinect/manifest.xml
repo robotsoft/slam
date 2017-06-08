@@ -1,0 +1,21 @@
+<package>
+  <description brief="rgbd_kinect">
+
+     rgbd_kinect
+
+  </description>
+  <author>viki</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/rgbd_kinect</url>
+  <depend package="actionlib"/>
+  <depend package="roscpp"/>
+  <depend package="rospy"/>
+  <depend package="roslib"/>
+  <depend package="std_msgs"/>
+  <depend package="actionlib_msgs"/>
+  <depend package="cv_bridge"/>
+
+</package>
+
+
